@@ -1,0 +1,10 @@
+{
+  "helloWorldMessage": {
+    "prefix": "helloWorldMessage",
+    "body": "console.log(\"Hello WORLD\");"
+  },
+  "testMessage": {
+    "prefix": "testMessage",
+    "body": "console.log(\"Test\");"
+  }
+}

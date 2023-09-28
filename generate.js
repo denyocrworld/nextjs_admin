@@ -1,45 +1,94 @@
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
 
-// Fungsi untuk mencari kode di antara //#TEMPLATE form dan //#END dalam sebuah teks
-function extractTemplateCode(text) {
-    const startPattern = /#\/\/TEMPLATE form/;
-    const endPattern = /#\/\/END/;
-    const startIndex = text.search(startPattern);
-    const endIndex = text.search(endPattern);
-
-    if (startIndex !== -1 && endIndex !== -1 && startIndex < endIndex) {
-        return text.substring(startIndex, endIndex + endPattern.source.length);
+class UserDefinedSnippetGenerator {
+    constructor() {
+        this.directoryPath = "src";
     }
 
-    return null;
-}
+    getTextBetweenTemplateAndEnd(data) {
+        const regex = /\/\/\#TEMPLATE([\s\S]+?)\/\/\#END/;
+        const match = data.match(regex);
 
-// Fungsi untuk mencari dan mengekstrak kode dari file .ts
-function findAndExtractTemplateCodeInFiles(directory) {
-    fs.readdirSync(directory).forEach((file) => {
-        const filePath = path.join(directory, file);
+        if (match) {
+            const snippetText = match[1].trim();
+            return snippetText;
+        }
 
-        if (fs.statSync(filePath).isDirectory()) {
-            // Jika ini adalah direktori, rekursif cari di dalamnya
-            findAndExtractTemplateCodeInFiles(filePath);
-        } else if (path.extname(file) === '.ts') {
-            // Jika ini adalah file dengan ekstensi .ts
-            const fileContent = fs.readFileSync(filePath, 'utf-8');
-            const extractedCode = extractTemplateCode(fileContent);
+        return null;
+    }
 
-            if (extractedCode !== null) {
-                // Jika kode berhasil diekstrak, simpan dalam file hasil_deteksi.txt
-                fs.appendFileSync('hasil_deteksi.txt', extractedCode + '\n\n');
+    generateSnippets() {
+        let snippetPath = `${process.cwd()}/${this.directoryPath}`;
+        snippetPath = "D:\\NEXT_JS\\mailsender\\src";
+        let snippets = [];
+
+        console.log(snippetPath);
+        let files = fs.readdirSync(snippetPath, {
+            recursive: true,
+        });
+        for (let n = 0; n < files.length; n++) {
+            let file = files[n];
+            if (file.endsWith(".tsx") == false) continue;
+
+            console.log(file);
+
+            let data = fs.readFileSync(`${snippetPath}/${file}`, "utf-8");
+            let lines = data.split("\n");
+            let prefix = "";
+            let bodyArr = [];
+            let record = false;
+
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i].trim();
+                if (line.indexOf("#TEMPLATE") > -1) {
+                    prefix = line.split(" ")[1];
+                    record = true;
+                } else if (line.indexOf("#END") > -1) {
+                    snippets.push({
+                        prefix: prefix,
+                        body: bodyArr.join("\n"),
+                    });
+
+                    bodyArr = [];
+                    prefix = "";
+                    record = false;
+                } else {
+                    if (record) {
+                        bodyArr.push(line);
+                    }
+                }
             }
         }
-    });
+
+        console.log("----");
+        console.log(`${snippets.length}`);
+        console.log(snippets);
+        console.log(snippets);
+        console.log("----");
+
+        let snippetContent = {};
+        for (let i = 0; i < snippets.length; i++) {
+            let snippet = snippets[i];
+            console.log(`Prefix: ${snippet.prefix}`);
+            console.log(`Code: ${snippet.body}`);
+            snippetContent[snippet.prefix] = {
+                prefix: snippet.prefix,
+                body: snippet.body,
+            };
+        }
+
+        this.saveSnippetsToFile(snippetContent);
+    }
+
+    saveSnippetsToFile(snippets) {
+        const snippetFilePath = `${process.cwd()}/.vscode/udf.code-snippets`;
+        const snippetContent = JSON.stringify(snippets, null, 2);
+
+        fs.writeFileSync(snippetFilePath, snippetContent);
+        console.log("Snippet file generated successfully.");
+    }
 }
 
-// Direktori saat ini
-const currentDirectory = process.cwd();
-
-// Cari dan ekstrak kode dalam file .ts di direktori saat ini
-findAndExtractTemplateCodeInFiles(currentDirectory);
-
-console.log('Pencarian dan ekstraksi kode selesai. Hasil disimpan dalam hasil_deteksi.txt.');
+// Gunakan class UserDefinedSnippetGenerator
+const snippetGenerator = new UserDefinedSnippetGenerator();
+snippetGenerator.generateSnippets();
